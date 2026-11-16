@@ -1,0 +1,92 @@
+/* Shared by every page on the site: the color palette, the page basics and the top header.
+   Anything that only one tool needs belongs in that tool's own tool.css, not here. */
+
+/* ---------- 1. Palette (Creative Day: black wordmark, blue + green rule) ---------- */
+:root {
+  color-scheme: light dark;
+  --cd-blue: #189ad6;
+  --cd-green: #c2db6f;
+
+  --bg: #f4f6f7;            /* page background */
+  --panel: #ffffff;         /* cards, header, anything that sits on the page */
+  --soft: #eef2f4;          /* quiet fills: hover rows, hint bars */
+  --line: #e0e4e7;          /* borders and dividers */
+
+  --ink: #111111;           /* main text */
+  --muted: #62676b;         /* secondary text */
+  --faint: #8a9095;         /* placeholders, least important text */
+
+  --accent: #1489c2;        /* buttons and selected things */
+  --accent-ink: #ffffff;    /* text on top of --accent */
+  --accent-soft: #dcedf6;   /* light accent fill */
+  --accent-text: #0d6a98;   /* accent-colored text on a light fill */
+
+  --ok: #5a7d14;
+  --warn: #a8670a;
+  --err: #b3261e;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111315;
+    --panel: #1b1e21;
+    --soft: #24282c;
+    --line: #30353a;
+
+    --ink: #eceff1;
+    --muted: #9aa1a6;
+    --faint: #6d747a;
+
+    --accent: #189ad6;
+    --accent-soft: #173a4c;
+    --accent-text: #7fcdf0;
+
+    --ok: #c2db6f;
+    --warn: #e0a640;
+    --err: #f07167;
+  }
+}
+
+/* ---------- 2. Page basics ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); }
+[hidden] { display: none !important; }
+
+/* ---------- 3. Header ----------
+   Pages write <site-header app="Tool name"></site-header>; site-header.js fills it in.
+   The size and the blue/green rule are set here on the tag itself, so the page does not jump while it loads. */
+site-header {
+  display: flex; align-items: center; gap: 18px;
+  height: 64px; padding: 0 20px; margin-bottom: 4px;
+  background: var(--panel); position: relative;
+}
+site-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 4px;
+  background: linear-gradient(90deg, var(--cd-blue) 0 73%, var(--cd-green) 73% 100%);
+}
+site-header .brand { display: block; flex: none; }
+site-header .brand img { display: block; height: 28px; width: auto; }
+site-header .app {
+  margin: 0; padding-left: 18px; border-left: 1px solid var(--line); min-width: 0;
+  font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+site-header .right { margin-left: auto; display: flex; align-items: center; gap: 18px; flex: none; }
+site-header .extras { display: contents; }
+site-header .all { font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+site-header .all:hover { color: var(--ink); text-decoration: underline; }
+site-header .by {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding-left: 18px; border-left: 1px solid var(--line);
+}
+site-header .by span {
+  font-size: 9px; line-height: 1; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--muted); white-space: nowrap;
+}
+site-header .by img { display: block; height: 34px; width: auto; }
+site-header a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+@media (max-width: 640px) {
+  site-header .app, site-header .all { display: none; }
+}

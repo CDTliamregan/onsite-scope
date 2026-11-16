@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onsite Scope · Production Toolz</title>
+<meta name="description" content="Phone waveform, vectorscope, RGB parade and histogram for IMAG, LED walls and camera checks.">
+<link rel="icon" type="image/png" href="shared/img/favicon.png">
+<link rel="stylesheet" href="shared/site.css">
+<link rel="stylesheet" href="tool.css">
+<script type="module" src="shared/site-header.js"></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<site-header app="Onsite Scope"></site-header>
+<main class="wrap">
+<div class="top">
+  <h1>Onsite Scope</h1>
+  <div class="meta" id="topMeta"><span>Rec.709 SDR</span><span id="metaCal">Phone: <b>uncalibrated</b></span><span id="metaPerf"></span></div>
+</div>
+<div class="app">
+  <section class="col" aria-label="Picture and references">
+    <div class="viewer" id="viewer">
+      <canvas id="view" aria-label="Picture. Drag to set the analysis region."></canvas>
+      <video id="video" playsinline muted autoplay></video>
+      <div class="badge" id="badge">Sample frame</div>
+      <div class="roiinfo" id="roiInfo">Region: full frame</div>
+    </div>
+
+    <div class="tapbar" id="tapbar" hidden>
+      <div class="what"><b id="tapWhat">Tap the white chip</b><span id="tapSub">Target 90 to 100%</span></div>
+      <button class="btn" id="tapUndo" type="button">Undo</button>
+      <button class="btn" id="tapSkip" type="button">Skip</button>
+      <button class="btn" id="tapDone" type="button">Done</button>
+    </div>
+
+    <div class="bar" id="srcBar">
+      <button class="btn" id="btnLive" type="button">Live camera</button>
+      <span class="btn" id="btnPhoto">Take photo<input type="file" id="filePhoto" accept="image/*" capture="environment" aria-label="Take photo"></span>
+      <span class="btn" id="btnOpen">Open image<input type="file" id="fileOpen" accept="image/*" aria-label="Open image"></span>
+      <button class="btn ghost" id="btnSample" type="button">Sample</button>
+      <span class="sep"></span>
+      <button class="btn" id="btnFreeze" type="button" aria-pressed="false">Freeze</button>
+      <button class="btn ghost" id="btnFull" type="button">Full frame</button>
+    </div>
+    <div class="bar" id="liveBar" hidden>
+      <label class="inline" for="avgSel">Average</label>
+      <select id="avgSel"><option value="1">1 frame</option><option value="4">4 frames</option><option value="8">8 frames</option><option value="16">16 frames</option><option value="32">32 frames</option></select>
+      <label class="inline" for="lensSel">Lens</label>
+      <select id="lensSel"></select>
+      <button class="btn" id="btnLock" type="button" aria-pressed="false">Lock exposure + WB</button>
+      <label class="inline" for="expSl" id="expLab" hidden>Exposure</label>
+      <input type="range" id="expSl" hidden>
+    </div>
+    <p class="hint" id="hint">Drag on the picture to box the area to analyze.</p>
+    <div class="bar" id="skinBar">
+      <label class="inline" for="skinSel">Complexion</label>
+      <select id="skinSel">
+        <option value="any">Any (skin at 30 to 75%)</option>
+        <option value="light">Light (55 to 75%)</option>
+        <option value="medium">Medium (45 to 65%)</option>
+        <option value="deep">Deep (30 to 55%)</option>
+      </select>
+    </div>
+
+    <nav class="modes" aria-label="Mode">
+      <button class="mode" type="button" data-mode="shading" aria-pressed="false"><b>Camera check</b><span>Chip chart on IMAG, levels and balance</span></button>
+      <button class="mode" type="button" data-mode="wall" aria-pressed="false"><b>LED wall</b><span>Evenness, banding, color</span></button>
+      <button class="mode" type="button" data-mode="content" aria-pressed="false"><b>Content QC</b><span>Clipping, crush, saturation</span></button>
+      <button class="mode" type="button" data-mode="lighting" aria-pressed="false"><b>Stage lighting</b><span>Skin level and hue on IMAG</span></button>
+    </nav>
+
+    <section class="card" aria-label="References">
+      <h2>References</h2>
+      <div class="step">
+        <div class="n">1</div><h3>Calibrate the phone to the wall</h3>
+        <div class="body">
+          <p>Send a gray step pattern from the LED processor or media server straight to the wall, bypassing cameras. Tap each step, then the color bars. This removes the phone's own exposure, tone curve and color boost from the readings.</p>
+          <p>The test pattern is full-range RGB. Play it out the same way as the show feeds: same media server output, same full or legal range setting, 100% scale, no color correction. Otherwise 0% and 100% land in the wrong place and every reading shifts.</p>
+          <p>It only holds for the picture it was tapped on, or in live mode while exposure stays locked.</p>
+          <div class="bar">
+            <select id="patternSel" aria-label="Test pattern"></select>
+            <button class="btn primary" id="btnCal" type="button">Tap steps</button>
+            <button class="btn ghost" id="btnPattern" type="button">Get test pattern</button>
+          </div>
+          <input type="text" id="customPattern" placeholder="Levels in %, e.g. 0, 50, 100" aria-label="Custom pattern levels" hidden>
+          <div class="bar">
+            <label class="inline"><input type="checkbox" id="calApply"> Apply calibration</label>
+            <button class="btn ghost" id="btnCalClear" type="button">Clear</button>
+          </div>
+          <div class="status" id="calStatus">Not calibrated</div>
+          <div class="bar">
+            <select id="barSel" aria-label="Color bar level"><option value="75">75% color bars</option><option value="100">100% color bars</option></select>
+            <button class="btn" id="btnColor" type="button">Tap color bars</button>
+          </div>
+          <div class="status" id="colorStatus">Color not calibrated</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">2</div><h3>Check the chart through the camera</h3>
+        <div class="body">
+          <p>Put the chip chart on stage, frame it with the show camera, and shoot the IMAG image. Tap each chip when asked. Readings are compared to the chart's published values.</p>
+          <div class="bar">
+            <select id="chartSel" aria-label="Chip chart"></select>
+            <button class="btn primary" id="btnChart" type="button">Tap chips</button>
+            <button class="btn ghost" id="btnChartClear" type="button">Clear</button>
+          </div>
+          <input type="text" id="customChart" placeholder="White 90 100; Gray 40 50; Black 0 10" aria-label="Custom chart patches" hidden>
+          <p class="fine" id="chartNote"></p>
+          <div class="status" id="chartStatus">No chips tapped</div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="col" aria-label="Scopes and results">
+    <div class="scopehead">
+      <div class="seg" role="group" aria-label="Scope layout" id="layoutSeg">
+        <button type="button" data-layout="quad">Quad</button>
+        <button type="button" data-layout="wave">Wave</button>
+        <button type="button" data-layout="parade">Parade</button>
+        <button type="button" data-layout="vector">Vector</button>
+        <button type="button" data-layout="hist">Hist</button>
+      </div>
+      <div class="seg" role="group" aria-label="Vectorscope gain" id="gainSeg">
+        <button type="button" data-gain="1">Vec 1×</button>
+        <button type="button" data-gain="2">2×</button>
+      </div>
+    </div>
+    <div class="scopes" id="scopes">
+      <figure class="scope" data-scope="wave"><canvas id="cWave"></canvas><figcaption>Waveform · luma</figcaption></figure>
+      <figure class="scope" data-scope="vector"><canvas id="cVec"></canvas><figcaption>Vectorscope</figcaption></figure>
+      <figure class="scope" data-scope="parade"><canvas id="cPar"></canvas><figcaption>RGB parade</figcaption></figure>
+      <figure class="scope" data-scope="hist"><canvas id="cHist"></canvas><figcaption>Histogram</figcaption></figure>
+    </div>
+    <div class="legend" id="legend"><span><i style="background:#c4ecff"></i>Current</span><span><i style="background:var(--warn);opacity:.6"></i>Skin line 123°</span></div>
+
+    <div class="reads" id="reads"></div>
+
+    <section class="card" aria-label="Results">
+      <div class="verdict"><h2>Checks</h2><span class="counts" id="counts"></span></div>
+      <div class="flags" id="flags"></div>
+    </section>
+
+    <section class="card" aria-label="Report">
+      <h2>Analysis report</h2>
+      <div class="fields">
+        <label>Show<input type="text" id="showName" placeholder="Show name"></label>
+        <label>Source<input type="text" id="sourceLabel" placeholder="e.g. Cam 2 on IMAG left"></label>
+      </div>
+      <div class="bar" style="margin-top:10px">
+        <button class="btn primary" id="btnReport" type="button">Export report</button>
+      </div>
+      <p class="fine" style="margin-top:8px">Saves a one-page image with the picture, scopes, readings and fixes. On an iPhone the share sheet offers Print and Save to Files.</p>
+    </section>
+
+    <details class="panel" id="targetsPanel">
+      <summary>Targets</summary>
+      <div class="inner">
+        <div class="tgrid" id="tgrid"></div>
+        <div class="bar">
+          <button class="btn ghost" id="btnResetT" type="button">Reset defaults</button>
+          <button class="btn ghost" id="btnExportS" type="button">Export settings</button>
+          <span class="btn ghost">Import settings<input type="file" id="fileImport" accept="application/json,.json" aria-label="Import settings"></span>
+        </div>
+        <p class="fine">Where these come from: chip levels are the chart makers' published values or the Rec.709 camera curve. Skin ranges are common shading practice. The EBU R103 range drawn on the waveform is the only formal standard, and it can't be verified through a camera. Balance, evenness, clipping, crush and gamut-edge limits are this tool's own working tolerances.</p>
+      </div>
+    </details>
+
+    <details class="panel" id="diagPanel">
+      <summary>Diagnostics</summary>
+      <div class="inner">
+        <pre class="diag" id="diag"></pre>
+        <div class="bar"><button class="btn ghost" id="btnCopyDiag" type="button">Copy diagnostics</button></div>
+        <p class="fine">Start the live camera, press Lock, then copy this. It shows what this browser lets the app control.</p>
+      </div>
+    </details>
+  </section>
+</div>
+</main>
+<div class="sheet" id="sheet" role="dialog" aria-label="File ready" hidden>
+  <img id="sheetImg" alt="" hidden>
+  <div class="sb">
+    <b id="sheetName"></b><span id="sheetHint"></span>
+    <div class="bar">
+      <button class="btn primary" id="sheetShare" type="button">Share or print</button>
+      <a class="btn" id="sheetDl">Download</a>
+      <button class="btn ghost" id="sheetClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
